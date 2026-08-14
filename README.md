@@ -2,6 +2,10 @@
 
 This local-first gateway transforms each user message before it is forwarded to OpenAI or Anthropic. It always returns a transformation receipt and never stores the raw prompt. Version 0.1.0 is a deterministic policy engine; it deliberately does **not** claim full semantic understanding or universal interception of hosted chat apps.
 
+## What works and what does not
+
+Read [docs/EXAMPLES_AND_LIMITATIONS.md](docs/EXAMPLES_AND_LIMITATIONS.md) before relying on the gateway. It contains exact examples, the current rule boundaries, the Codex/Claude Code integration status, and source-file locations for every behavior.
+
 ## Run locally
 
 ```powershell
