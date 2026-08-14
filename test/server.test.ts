@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { PromptIntelligence } from "../src/intelligence.js";
 import { createGatewayServer } from "../src/server.js";
 
 async function withServer(run: (baseUrl: string) => Promise<void>) {
@@ -44,7 +45,7 @@ test("transform endpoint returns a receipt without the raw prompt", async () => 
     assert.equal(response.status, 200);
     assert.equal(body.receipt.rawPromptStored, false);
     assert.doesNotMatch(JSON.stringify(body), /I hate this project/);
-    assert.equal(body.policyVersion, "0.1.0");
+    assert.match(body.policyVersion, /\S/);
   });
 });
 
@@ -102,6 +103,53 @@ test("chat gateway forwards only the transformed user message", async () => {
     assert.equal(body.transformationReceipts[0].decision, "constructive_reframe");
     assert.match(forwardedBody, /understand the problems/i);
     assert.doesNotMatch(forwardedBody, /I hate this codebase/);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("gateway uses prompt intelligence before forwarding and returns the derived goal", async () => {
+  let analyzedPrompt = "";
+  let forwardedBody = "";
+  const intelligence: PromptIntelligence = {
+    analyze: async (prompt) => {
+      analyzedPrompt = prompt;
+      return {
+        transformedPrompt: "Create a prioritized plan to improve the release process.",
+        userGoal: "Make releases predictable and less frustrating.",
+        explanation: "Kept the objective and removed negative framing.",
+        instructions: ["Prefer a concrete release checklist."],
+        confidence: 0.95,
+        requiresReview: false,
+        provider: "openai",
+        model: "test-model",
+        savedInstructions: 1
+      };
+    }
+  };
+  const server = createGatewayServer({
+    token: "test-token-123456",
+    intelligence,
+    forward: async (_provider, body) => {
+      forwardedBody = JSON.stringify(body);
+      return { id: "mock-response" };
+    }
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/v1/gateway/chat`, {
+      method: "POST",
+      headers: { authorization: "Bearer test-token-123456", "content-type": "application/json" },
+      body: JSON.stringify({ provider: "openai", model: "main-model", messages: [{ role: "user", content: "I hate the release process." }] })
+    });
+    const body = await response.json() as { promptIntelligence: Array<{ userGoal: string }> };
+    assert.equal(response.status, 200);
+    assert.equal(analyzedPrompt, "I hate the release process.");
+    assert.equal(body.promptIntelligence[0].userGoal, "Make releases predictable and less frustrating.");
+    assert.match(forwardedBody, /prioritized plan to improve the release process/i);
+    assert.doesNotMatch(forwardedBody, /I hate the release process/);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }

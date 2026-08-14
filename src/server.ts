@@ -1,6 +1,7 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { createConfiguredPromptIntelligence, PromptIntelligence, PromptIntelligenceResult } from "./intelligence.js";
 import { MAX_PROMPT_CHARS, POLICY_VERSION, TransformationReceipt, transformPrompt } from "./transform.js";
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -27,6 +28,7 @@ export interface GatewayOptions {
   token: string;
   maxRequestsPerMinute?: number;
   forward?: Forwarder;
+  intelligence?: PromptIntelligence;
 }
 
 class RateLimiter {
@@ -77,16 +79,22 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   }
 }
 
-function transformedChat(input: ChatRequest): { body: Record<string, unknown>; receipts: TransformationReceipt[] } {
+async function transformedChat(
+  input: ChatRequest,
+  intelligence?: PromptIntelligence
+): Promise<{ body: Record<string, unknown>; receipts: TransformationReceipt[]; intelligenceResults: PromptIntelligenceResult[] }> {
   const receipts: TransformationReceipt[] = [];
-  const messages = input.messages.map((message) => {
+  const intelligenceResults: PromptIntelligenceResult[] = [];
+  const messages = await Promise.all(input.messages.map(async (message) => {
     if (message.role !== "user") return message;
-    const receipt = transformPrompt(message.content);
+    const analysis = intelligence ? await intelligence.analyze(message.content) : undefined;
+    if (analysis) intelligenceResults.push(analysis);
+    const receipt = transformPrompt(analysis?.transformedPrompt ?? message.content);
     receipts.push(receipt);
     return { ...message, content: receipt.transformedPrompt };
-  });
+  }));
 
-  return { body: { ...input, messages }, receipts };
+  return { body: { ...input, messages }, receipts, intelligenceResults };
 }
 
 function configuredForwarder(): Forwarder {
@@ -132,6 +140,7 @@ export function createGatewayServer(options: GatewayOptions): Server {
   if (!options.token || options.token.length < 16) throw new Error("A gateway token of at least 16 characters is required.");
   const limiter = new RateLimiter(options.maxRequestsPerMinute ?? 60);
   const forward = options.forward ?? configuredForwarder();
+  const intelligence = options.intelligence ?? createConfiguredPromptIntelligence();
 
   return createServer(async (request, response) => {
     if (request.method === "GET" && request.url === "/health") {
@@ -168,9 +177,14 @@ export function createGatewayServer(options: GatewayOptions): Server {
         json(response, 400, { error: "Invalid chat request" });
         return;
       }
-      const { body, receipts } = transformedChat(parsed.data);
+      const { body, receipts, intelligenceResults } = await transformedChat(parsed.data, intelligence);
       const providerResponse = await forward(parsed.data.provider, body);
-      json(response, 200, { policyVersion: POLICY_VERSION, transformationReceipts: receipts, providerResponse });
+      json(response, 200, {
+        policyVersion: POLICY_VERSION,
+        transformationReceipts: receipts,
+        promptIntelligence: intelligenceResults,
+        providerResponse
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Request failed.";
       const status = /must not be blank|exceeds the|too large|valid JSON/.test(message) ? 400 : 502;

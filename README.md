@@ -39,6 +39,17 @@ Configure the compiled command as a local stdio MCP server in a supported host. 
 
 MCP gives Codex and Claude Code access to the same policy surface. It does not itself intercept the host's initial user message; strict pre-provider enforcement requires calls to use the gateway endpoint or a controlled client wrapper.
 
+## Optional prompt-intelligence model
+
+Set `SEMANTIC_INTELLIGENCE_PROVIDER` to `openai`, `gemini`, or `openai-compatible` to enable a model-powered stage before deterministic transformation and main-model forwarding. It returns:
+
+- `transformedPrompt`: a clearer prompt for the main model.
+- `userGoal`: the outcome it believes you want.
+- `explanation`, `confidence`, and `requiresReview`.
+- derived reusable `instructions`, saved locally without saving the raw prompt.
+
+It is disabled by default. Selecting a provider explicitly authorizes that provider to receive the raw user messages sent through `/v1/gateway/chat`; API keys remain environment variables. See [docs/PROMPT_INTELLIGENCE.md](docs/PROMPT_INTELLIGENCE.md) for setup and privacy boundaries.
+
 ## Verification
 
 ```powershell

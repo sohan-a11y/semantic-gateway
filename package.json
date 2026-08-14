@@ -8,8 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "mcp": "node dist/mcp.js",
-    "test": "node --import tsx --test test/transform.test.ts test/server.test.ts test/mcp.test.ts",
-    "test:coverage": "c8 --all --extension .ts --reporter=text --reporter=lcov node --import tsx --test test/transform.test.ts test/server.test.ts test/mcp.test.ts"
+    "test": "node --import tsx --test test/transform.test.ts test/server.test.ts test/mcp.test.ts test/intelligence.test.ts",
+    "test:coverage": "c8 --all --extension .ts --reporter=text --reporter=lcov node --import tsx --test test/transform.test.ts test/server.test.ts test/mcp.test.ts test/intelligence.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
