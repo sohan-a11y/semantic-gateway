@@ -16,6 +16,8 @@ The response adds a `promptIntelligence` array. Its `userGoal` states what the f
 
 This is an API-gateway flow. It does not intercept text typed directly into Codex Desktop, Codex CLI, Claude Code, Claude Desktop, or browser chat. Those clients need a controlled composer/wrapper that sends their message to `/v1/gateway/chat`.
 
+For strict Claude Code isolation, use `npm run claude:strict`. Its controlled composer calls `POST /v1/semantic/intelligence`, and then gives Claude Code only the returned `transformedPrompt`. The raw prompt is never passed to the Claude Code process.
+
 ## Privacy boundary
 
 Prompt intelligence is **off by default**. Set `SEMANTIC_INTELLIGENCE_PROVIDER` only when you accept that raw messages submitted to `/v1/gateway/chat` will be sent to that selected provider.

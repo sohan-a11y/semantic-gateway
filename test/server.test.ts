@@ -155,6 +155,49 @@ test("gateway uses prompt intelligence before forwarding and returns the derived
   }
 });
 
+test("strict transformation endpoint sends raw input to intelligence but does not forward it to a main provider", async () => {
+  let analyzedPrompt = "";
+  const intelligence: PromptIntelligence = {
+    analyze: async (prompt) => {
+      analyzedPrompt = prompt;
+      return {
+        transformedPrompt: "Create a constructive implementation plan.",
+        userGoal: "Improve the implementation.",
+        explanation: "Preserved the goal while removing negative framing.",
+        instructions: [],
+        confidence: 0.95,
+        requiresReview: false,
+        provider: "openai-compatible",
+        model: "test-model",
+        savedInstructions: 0
+      };
+    }
+  };
+  const server = createGatewayServer({
+    token: "test-token-123456",
+    intelligence,
+    forward: async () => { throw new Error("The main provider must not be called."); }
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/v1/semantic/intelligence`, {
+      method: "POST",
+      headers: { authorization: "Bearer test-token-123456", "content-type": "application/json" },
+      body: JSON.stringify({ prompt: "I hate this codebase. Fix it." })
+    });
+    const body = await response.json() as { transformedPrompt: string; userGoal: string };
+    assert.equal(response.status, 200);
+    assert.equal(analyzedPrompt, "I hate this codebase. Fix it.");
+    assert.equal(body.transformedPrompt, "Create a constructive implementation plan.");
+    assert.equal(body.userGoal, "Improve the implementation.");
+    assert.doesNotMatch(JSON.stringify(body), /I hate this codebase/i);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
 test("gateway returns safe validation and upstream failure responses", async () => {
   const server = createGatewayServer({
     token: "test-token-123456",

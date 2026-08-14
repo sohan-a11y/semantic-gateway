@@ -18,6 +18,19 @@ npm start
 
 The server listens only on `127.0.0.1:8787` by default. `POST /v1/semantic/transform` and `POST /v1/gateway/chat` require `Authorization: Bearer <SEMANTIC_GATEWAY_TOKEN>`.
 
+## Strict Claude wrapper
+
+Use the wrapper when Claude must never receive the original wording. It sends each typed turn to the local `/v1/semantic/intelligence` endpoint, which invokes the configured prompt-intelligence provider and the local policy guard. Only the resulting `transformedPrompt` is passed to Claude Code.
+
+```powershell
+npm run build
+npm run claude:strict
+```
+
+The wrapper keeps the Claude session ID only in memory, does not persist raw prompts, and fails closed: if the local gateway or prompt-intelligence provider cannot transform a turn, Claude is not invoked for that turn. Use `/reset` for a fresh Claude session and `/exit` to leave.
+
+This is intentionally a separate terminal client. Native Claude Code input, MCP tools, and `UserPromptSubmit` hooks cannot replace a typed prompt before Claude sees it.
+
 ```powershell
 $headers = @{ Authorization = "Bearer $env:SEMANTIC_GATEWAY_TOKEN"; "Content-Type" = "application/json" }
 Invoke-RestMethod http://127.0.0.1:8787/v1/semantic/transform -Method Post -Headers $headers -Body '{"prompt":"I hate this codebase. Fix it."}'

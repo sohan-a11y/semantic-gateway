@@ -147,7 +147,7 @@ export function createGatewayServer(options: GatewayOptions): Server {
       json(response, 200, { status: "ok", service: "semantic-gateway" });
       return;
     }
-    if (request.method !== "POST" || !["/v1/semantic/transform", "/v1/gateway/chat"].includes(request.url ?? "")) {
+    if (request.method !== "POST" || !["/v1/semantic/transform", "/v1/semantic/intelligence", "/v1/gateway/chat"].includes(request.url ?? "")) {
       json(response, 404, { error: "Not found" });
       return;
     }
@@ -169,6 +169,27 @@ export function createGatewayServer(options: GatewayOptions): Server {
           return;
         }
         json(response, 200, { policyVersion: POLICY_VERSION, receipt: transformPrompt(parsed.data.prompt) });
+        return;
+      }
+
+      if (request.url === "/v1/semantic/intelligence") {
+        const parsed = transformRequestSchema.safeParse(data);
+        if (!parsed.success) {
+          json(response, 400, { error: "Invalid transform request" });
+          return;
+        }
+        if (!intelligence) {
+          json(response, 503, { error: "Prompt intelligence is not configured." });
+          return;
+        }
+        const analysis = await intelligence.analyze(parsed.data.prompt);
+        const receipt = transformPrompt(analysis.transformedPrompt);
+        json(response, 200, {
+          policyVersion: POLICY_VERSION,
+          transformedPrompt: receipt.transformedPrompt,
+          decision: receipt.decision,
+          userGoal: analysis.userGoal
+        });
         return;
       }
 
