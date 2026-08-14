@@ -27,7 +27,7 @@ npm run build
 npm run claude:strict
 ```
 
-The wrapper keeps the Claude session ID only in memory, does not persist raw prompts, and fails closed: if the local gateway or prompt-intelligence provider cannot transform a turn, Claude is not invoked for that turn. Use `/reset` for a fresh Claude session and `/exit` to leave.
+The wrapper displays `Sent to Claude` before each response so you can review the exact transformed prompt. It keeps the Claude session ID only in memory, does not persist raw prompts, and fails closed: if the local gateway or prompt-intelligence provider cannot transform a turn, Claude is not invoked for that turn. Use `/reset` for a fresh Claude session and `/exit` to leave.
 
 This is intentionally a separate terminal client. Native Claude Code input, MCP tools, and `UserPromptSubmit` hooks cannot replace a typed prompt before Claude sees it.
 

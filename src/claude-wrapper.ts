@@ -27,7 +27,7 @@ async function main(): Promise<void> {
 
       try {
         const result = await session.submit(rawPrompt);
-        stdout.write(`Semantic goal: ${result.userGoal}\n\nClaude > ${result.text}\n`);
+        stdout.write(`Semantic goal: ${result.userGoal}\nSent to Claude: ${result.sentToClaude}\n\nClaude > ${result.text}\n`);
       } catch (error) {
         const message = error instanceof Error ? error.message : "The turn could not be processed.";
         stdout.write(`Turn blocked: ${message}\n`);

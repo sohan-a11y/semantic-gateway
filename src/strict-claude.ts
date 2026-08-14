@@ -109,11 +109,17 @@ export class StrictClaudeSession {
     private readonly claude: ClaudeRunner
   ) {}
 
-  async submit(rawPrompt: string): Promise<ClaudeRunResult & Pick<SemanticTransformation, "userGoal" | "decision" | "policyVersion">> {
+  async submit(rawPrompt: string): Promise<ClaudeRunResult & Pick<SemanticTransformation, "userGoal" | "decision" | "policyVersion"> & { sentToClaude: string }> {
     const transformation = await this.gateway.transform(rawPrompt);
     const result = await this.claude.run(transformation.transformedPrompt, this.sessionId);
     this.sessionId = result.sessionId;
-    return { ...result, userGoal: transformation.userGoal, decision: transformation.decision, policyVersion: transformation.policyVersion };
+    return {
+      ...result,
+      userGoal: transformation.userGoal,
+      decision: transformation.decision,
+      policyVersion: transformation.policyVersion,
+      sentToClaude: transformation.transformedPrompt
+    };
   }
 
   reset(): void {

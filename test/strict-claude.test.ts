@@ -31,6 +31,7 @@ test("strict Claude session sends the raw turn only to the gateway and only the 
   assert.doesNotMatch(claudeInput, /hate this codebase/i);
   assert.equal(result.text, "Here is the plan.");
   assert.equal(result.userGoal, "Improve the codebase.");
+  assert.equal(result.sentToClaude, "Create a prioritized plan to improve this codebase.");
 });
 
 test("strict Claude session fails closed when the gateway cannot transform a turn", async () => {
