@@ -1,13 +1,5 @@
 # Semantic Gateway MVP
 
-![GitHub License](https://img.shields.io/github/license/sohan-a11y/semantic-gateway?style=flat-square)
-![GitHub Last Commit](https://img.shields.io/github/last-commit/sohan-a11y/semantic-gateway?style=flat-square)
-![GitHub Stars](https://img.shields.io/github/stars/sohan-a11y/semantic-gateway?style=flat-square)
-![GitHub Forks](https://img.shields.io/github/forks/sohan-a11y/semantic-gateway?style=flat-square)
-
-[![Skills](https://skillicons.dev/icons?i=python,fastapi,redis)](https://skillicons.dev)
-
-
 This local-first gateway transforms each user message before it is forwarded to OpenAI or Anthropic. It always returns a transformation receipt and never stores the raw prompt. Version 0.1.0 is a deterministic policy engine; it deliberately does **not** claim full semantic understanding or universal interception of hosted chat apps.
 
 ## What works and what does not
